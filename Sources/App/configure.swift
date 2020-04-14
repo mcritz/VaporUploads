@@ -10,6 +10,7 @@ public func configure(_ app: Application) throws {
     app.databases.use(.sqlite(.file("db.sqlite")), as: .sqlite)
 
     app.migrations.add(CreateTodo())
+    app.migrations.add(CreateImage())
     
     try app.autoMigrate().wait()
 
