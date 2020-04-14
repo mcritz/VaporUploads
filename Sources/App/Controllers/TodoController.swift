@@ -5,6 +5,11 @@ struct TodoController {
     func index(req: Request) throws -> EventLoopFuture<[Todo]> {
         return Todo.query(on: req.db).all()
     }
+    
+    func getOne(req: Request) throws -> EventLoopFuture<Todo> {
+        return Todo.find(req.parameters.get("todoID"), on: req.db)
+            .unwrap(or: Abort(.notFound))
+    }
 
     func create(req: Request) throws -> EventLoopFuture<Todo> {
         let todo = try req.content.decode(Todo.self)
