@@ -16,15 +16,11 @@ final class Image: Model, Content {
     @ID(key: .id)
     var id: UUID?
     
-    @Field(key: "path")
-    var path: String
+    @Field(key: "data")
+    var data: Data
     
-    @Field(key: "filename")
-    var filename: String
-    
-    init(id: UUID? = nil, path: String, filename: String) {
+    init(id: UUID? = nil, data: Data) {
         self.id = id
-        self.path = path
-        self.filename = filename
+        self.data = data
     }
 }

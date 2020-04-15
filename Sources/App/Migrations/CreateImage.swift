@@ -11,8 +11,7 @@ struct CreateImage: Migration {
     func prepare(on database: Database) -> EventLoopFuture<Void> {
         return database.schema(Image.schema)
             .id()
-            .field("path", .string, .required)
-            .field("filename", .string, .required)
+            .field("data", .data, .required)
             .create()
     }
     
