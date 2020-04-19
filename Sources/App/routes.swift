@@ -48,10 +48,10 @@ func routes(_ app: Application) throws {
     app.on(.POST, "images", body: .collect(maxSize: 10_000_000)) { req -> EventLoopFuture<Image> in
         let image = try req.content.decode(Image.self)
         return image.save(on: req.db).map {
+            let imageName = image.id?.uuidString ?? "unknown image"
             do {
-                try saveFile(name: image.id!.uuidString, data: image.data)
+                try saveFile(name: imageName, data: image.data)
             } catch {
-                let imageName = image.id?.uuidString ?? "unknown image"
                 logger.critical("failed to save file for image \(imageName)")
             }
             return image
