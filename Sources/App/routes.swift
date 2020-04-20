@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-enum FileError: Error {
+fileprivate enum FileError: Error {
     case couldNotSave
 }
 
@@ -10,35 +10,13 @@ fileprivate func saveFile(name: String, data: Data) throws {
     if FileManager.default.createFile(atPath: path, contents: data, attributes: nil) {
         debugPrint("saved file\n\t \(path)")
     } else {
-        debugPrint("save file failed\n\t \(path)")
         throw FileError.couldNotSave
     }
-}
-
-struct FileUpload: Codable {
-    var file: File
 }
 
 func routes(_ app: Application) throws {
     
     let logger = Logger(label: "routes")
-    
-    // MARK: static paths
-    app.get { req in
-        return "It works!"
-    }
-
-    app.get("hello") { req -> String in
-        return "Hello, world!"
-    }
-
-    // MARK: /todos
-    let todoController = TodoController()
-    app.get("todos", use: todoController.index)
-    app.get("todos", ":todoID", use: todoController.getOne)
-    app.post("todos", use: todoController.create)
-    app.delete("todos", ":todoID", use: todoController.delete)
-    
     
     // MARK: /images
     let imageController = ImageController()
@@ -89,6 +67,7 @@ func routes(_ app: Application) throws {
         guard FileManager().createFile(atPath: filePath,
                                        contents: nil,
                                        attributes: nil) else {
+            logger.critical("Could not upload \(filePath)")
             throw Abort(.internalServerError)
         }
         
