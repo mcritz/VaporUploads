@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-fileprivate enum FileError: Error {
+enum FileError: Error {
     case couldNotSave
 }
 
