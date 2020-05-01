@@ -7,7 +7,6 @@
 
 import Fluent
 import Vapor
-import NIO
 
 struct ImageController {
     func index(req: Request) throws -> EventLoopFuture<[Image]> {

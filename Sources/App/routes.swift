@@ -14,6 +14,10 @@ fileprivate func saveFile(name: String, data: Data) throws {
     }
 }
 
+extension HTTPHeaders {
+    static let fileName = Name("File-Name")
+}
+
 func routes(_ app: Application) throws {
     
     let logger = Logger(label: "routes")
@@ -36,21 +40,10 @@ func routes(_ app: Application) throws {
         }
     }
     
-    /// Upload a huge file (100s of gigs, even)
-    /// Problem: If we don’t handle the body as a stream, we’ll end up loading the enire file into memory.
-    /// Solution: stream the incoming bytes to a file on the server.
-    /**
-     * Example:
-        curl --location --request POST 'localhost:8080/bigfile' \
-            --header 'Content-Type: video/mp4' \
-            --data-binary '@/Users/USERNAME/path/to/GiganticMultiGigabyteFile.mp4'
-     */
-    app.on(.POST, "bigfile", body: .stream) { req -> EventLoopFuture<HTTPStatus> in
-        let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
-        
+    func fileExtension(for headers: HTTPHeaders) -> String {
         // Parse the header’s Content-Type to determine the file extension
         var fileExtension = "tmp"
-        if let contentType = req.headers.contentType {
+        if let contentType = headers.contentType {
             switch contentType {
             case .jpeg:
                 fileExtension = "jpg"
@@ -62,10 +55,34 @@ func routes(_ app: Application) throws {
                 fileExtension = "tmp"
             }
         }
+        return fileExtension
+    }
+    
+    func filename(with headers: HTTPHeaders) -> String {
+        let fileNameHeader = headers["File-Name"]
+        if let inferredName = fileNameHeader.first {
+            return inferredName
+        }
+        let fileExt = fileExtension(for: headers)
+        return "upload-\(UUID().uuidString).\(fileExt)"
+    }
+    
+    /// Upload huge files (100s of gigs, even)
+    /// Problem 1: If we don’t handle the body as a stream, we’ll end up loading the enire file into memory.
+    /// Problem 2: Needs to scale for hunderds or thousands of concurrent transfers.
+    /// Solution: stream the incoming bytes to a file on the server.
+    /**
+     * Example:
+        curl --location --request POST 'localhost:8080/bigfile' \
+            --header 'Content-Type: video/mp4' \
+            --data-binary '@/Users/USERNAME/path/to/GiganticMultiGigabyteFile.mp4'
+     */
+    app.on(.POST, "bigfile", body: .stream) { req -> EventLoopFuture<HTTPStatus> in
+        let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
         
         // Create a file on disk
-        let filePath = app.directory.workingDirectory + "upload-\(UUID().uuidString).\(fileExtension)"
-        guard FileManager().createFile(atPath: filePath,
+        let filePath = app.directory.workingDirectory + "Uploads/" + filename(with: req.headers)
+        guard FileManager.default.createFile(atPath: filePath,
                                        contents: nil,
                                        attributes: nil) else {
             logger.critical("Could not upload \(filePath)")
@@ -73,7 +90,6 @@ func routes(_ app: Application) throws {
         }
         
         // Configure SwiftNIO to create a file stream.
-        // Danger Zone! When we .openFile() we MUST later .close()
         let nbFileIO = NonBlockingFileIO(threadPool: app.threadPool)
         let fileHandle = nbFileIO.openFile(path: filePath, mode: .write, eventLoop: req.eventLoop)
         
@@ -85,12 +101,17 @@ func routes(_ app: Application) throws {
                 
                 switch someResult {
                 case .buffer(let buffy):
-                    // We have bytes. So, write them to disk, and succeed our promise
-                    nbFileIO.write(fileHandle: fHand,
-                                               buffer: buffy,
-                                               eventLoop: req.eventLoop)
-                        .always { _ in
-                            drainPromise.succeed(())
+                    // We have bytes. So, write them to disk, and handle our promise
+                    _ = nbFileIO.write(fileHandle: fHand,
+                                   buffer: buffy,
+                                   eventLoop: req.eventLoop)
+                        .always { outcome in
+                            switch outcome {
+                            case .success(let yep):
+                                drainPromise.succeed(yep)
+                            case .failure(let err):
+                                drainPromise.fail(err)
+                            }
                     }
                 case .error(let err):
                     statusPromise.succeed(.internalServerError)
