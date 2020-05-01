@@ -46,6 +46,7 @@ func routes(_ app: Application) throws {
             --data-binary '@/Users/USERNAME/path/to/GiganticMultiGigabyteFile.mp4'
      */
     app.on(.POST, "bigfile", body: .stream) { req -> EventLoopFuture<HTTPStatus> in
+        let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
         
         // Parse the header’s Content-Type to determine the file extension
         var fileExtension = "tmp"
@@ -78,54 +79,37 @@ func routes(_ app: Application) throws {
         
         // Launch the stream…
         return fileHandle.map { fHand in
-            // Here’s the tricky bit.
-            // If we don’t organize our FileIO writes we end up in a race condition.
-            // So, store the futures in an array so we can reason around their states.
-            var futureFileIOWriters = [EventLoopFuture<()>]()
-            
             // Vapor will now feed us bytes
             req.body.drain { someResult -> EventLoopFuture<Void> in
+                let drainPromise = req.eventLoop.makePromise(of: Void.self)
+                
                 switch someResult {
                 case .buffer(let buffy):
-                    // We have bytes. So, write them to disk in a future…
-                    let wrote = nbFileIO.write(fileHandle: fHand,
+                    // We have bytes. So, write them to disk, and succeed our promise
+                    nbFileIO.write(fileHandle: fHand,
                                                buffer: buffy,
                                                eventLoop: req.eventLoop)
-                    // …adding the future to our array…
-                    futureFileIOWriters.append(wrote)
-                    // …and return for the next result
-                    return req.eventLoop.future()
-                    
+                        .always { _ in
+                            drainPromise.succeed(())
+                    }
                 case .error(let err):
-                    debugPrint("error", err)
+                    statusPromise.succeed(.internalServerError)
                     do {
                         // Handle errors by closing and removing our file
                         try fHand.close()
-                        try FileManager().removeItem(atPath: filePath)
+                        try FileManager.default.removeItem(atPath: filePath)
                     } catch {
-                        debugPrint("fail", error)
+                        debugPrint("catastrophic failure", error)
                     }
-                    // Wail on fail
-                    return req.eventLoop.makeFailedFuture(err)
+                    // Inform the client
+                    statusPromise.succeed(.internalServerError)
                     
                 case .end:
-                    // Danger Zone!
-                    // Bytes are done coming off the wire, but our FileIOWrites could still be happening.
-                    // If we close the file handler now then bad things happen.
-                    // Also, we have N number of Futures that haven’t given a result, yet.
-                    // So, we need to collect the Futures and ensure their success.
-                    // I’m using `.fold([EventLoopFuture<T>]` but there’s probably other ways of doing this.
-                    return req.eventLoop.future().fold(futureFileIOWriters) { _, _ in
-                        // return success…
-                        return req.eventLoop.makeSucceededFuture(())
-                    }.always { _ in
-                        // and when we’re done with all the file writes, we MUST close the file.
-                        try? fHand.close()
-                    }
+                    statusPromise.succeed(.ok)
+                    drainPromise.succeed(())
                 }
+                return drainPromise.futureResult
             }
-        }.map { _ in
-            return HTTPStatus.accepted // 202: accepted for processing
-        }
+        }.transform(to: statusPromise.futureResult)
     }
 }
