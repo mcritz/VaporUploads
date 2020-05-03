@@ -44,8 +44,11 @@ func routes(_ app: Application) throws {
     }
     
     let uploadController = UploadController()
+    app.on(.GET, "files", use: uploadController.index)
+    app.on(.GET, "files", ":fileID", use: uploadController.getOne)
+    app.on(.GET, "files", ":fileID", "download", use: uploadController.downloadOne)
     app.on(.POST,
-           "fileupload",
+           "files",
            body: .stream,
            use: uploadController.upload)
 }

@@ -10,7 +10,13 @@ final class Upload: Model, Content {
     var id: UUID?
     
     @Field(key: "fileName")
-    var fileName: String
+    private var fileName: String
+    
+    var fileLastPath: String {
+        get {
+            URL(string: fileName)?.lastPathComponent ?? ""
+        }
+    }
     
     init(id: UUID? = nil, fileName: String) {
         self.id = id

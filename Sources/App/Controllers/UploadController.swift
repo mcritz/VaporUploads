@@ -2,33 +2,17 @@ import Fluent
 import Vapor
 
 struct UploadController {
-    func fileExtension(for headers: HTTPHeaders) -> String {
-        // Parse the header’s Content-Type to determine the file extension
-        var fileExtension = "tmp"
-        if let contentType = headers.contentType {
-            switch contentType {
-            case .jpeg:
-                fileExtension = "jpg"
-            case .mp3:
-                fileExtension = "mp3"
-            case .init(type: "video", subType: "mp4"):
-                fileExtension = "mp4"
-            default:
-                fileExtension = "bits"
-            }
-        }
-        return fileExtension
+    
+    func index(req: Request) throws -> EventLoopFuture<[Upload]> {
+        Upload.query(on: req.db).all()
     }
     
-    func filename(with headers: HTTPHeaders) -> String {
-        let fileNameHeader = headers["File-Name"]
-        if let inferredName = fileNameHeader.first {
-            return inferredName
-        }
-        
-        let fileExt = fileExtension(for: headers)
-        return "upload-\(UUID().uuidString).\(fileExt)"
+    func getOne(req: Request) throws -> EventLoopFuture<Upload> {
+        Upload.find(req.parameters.get("fileID"), on: req.db)
+            .unwrap(or: Abort(.notFound))
     }
+    
+    
     
     /// Upload huge files (100s of gigs, even)
     /// Problem 1: If we don’t handle the body as a stream, we’ll end up loading the enire file into memory.
@@ -44,7 +28,8 @@ struct UploadController {
         let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
         
         // Create a file on disks
-        let filePath = req.application.directory.workingDirectory + "Uploads/" + filename(with: req.headers)
+        let fileName = filename(with: req.headers)
+        let filePath = req.application.directory.workingDirectory + "Uploads/" + fileName
         guard FileManager.default.createFile(atPath: filePath,
                                        contents: nil,
                                        attributes: nil) else {
@@ -78,7 +63,6 @@ struct UploadController {
                             }
                     }
                 case .error(let err):
-                    statusPromise.succeed(.internalServerError)
                     do {
                         // Handle errors by closing and removing our file
                         try? fHand.close()
@@ -92,9 +76,38 @@ struct UploadController {
                 case .end:
                     statusPromise.succeed(.ok)
                     drainPromise.succeed(())
+                    _ = Upload(fileName: fileName).save(on: req.db)
                 }
                 return drainPromise.futureResult
             }
         }.transform(to: statusPromise.futureResult)
+    }
+    
+    private func fileExtension(for headers: HTTPHeaders) -> String {
+        // Parse the header’s Content-Type to determine the file extension
+        var fileExtension = "tmp"
+        if let contentType = headers.contentType {
+            switch contentType {
+            case .jpeg:
+                fileExtension = "jpg"
+            case .mp3:
+                fileExtension = "mp3"
+            case .init(type: "video", subType: "mp4"):
+                fileExtension = "mp4"
+            default:
+                fileExtension = "bits"
+            }
+        }
+        return fileExtension
+    }
+    
+    private func filename(with headers: HTTPHeaders) -> String {
+        let fileNameHeader = headers["File-Name"]
+        if let inferredName = fileNameHeader.first {
+            return inferredName
+        }
+        
+        let fileExt = fileExtension(for: headers)
+        return "upload-\(UUID().uuidString).\(fileExt)"
     }
 }
