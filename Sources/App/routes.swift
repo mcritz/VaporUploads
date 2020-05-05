@@ -46,7 +46,7 @@ func routes(_ app: Application) throws {
     let uploadController = UploadController()
     app.on(.GET, "files", use: uploadController.index)
     app.on(.GET, "files", ":fileID", use: uploadController.getOne)
-    app.on(.GET, "files", ":fileID", "original", use: uploadController.downloadOne)
+    app.on(.GET, "files", ":fileID", "download", use: uploadController.downloadOne)
     app.on(.POST,
            "files",
            body: .stream,

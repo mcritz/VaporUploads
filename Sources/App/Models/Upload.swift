@@ -12,10 +12,8 @@ final class Upload: Model, Content {
     @Field(key: "fileName")
     var fileName: String
     
-    var fileLastPath: String {
-        get {
-            URL(string: fileName)?.lastPathComponent ?? ""
-        }
+    public func filePath(for app: Application) -> String {
+        app.directory.workingDirectory + "Uploads/" + fileName
     }
     
     init(id: UUID? = nil, fileName: String) {
