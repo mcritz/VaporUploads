@@ -1,10 +1,10 @@
 import Fluent
 import Vapor
 
-final class Upload: Model, Content {
+final class StreamModel: Model, Content {
     init() { }
     
-    static let schema = "uploads"
+    static let schema = "stream"
     
     @ID(key: .id)
     var id: UUID?
@@ -12,10 +12,8 @@ final class Upload: Model, Content {
     @Field(key: "fileName")
     var fileName: String
     
-    var fileLastPath: String {
-        get {
-            URL(string: fileName)?.lastPathComponent ?? ""
-        }
+    public func filePath(for app: Application) -> String {
+        app.directory.workingDirectory + "Uploads/" + fileName
     }
     
     init(id: UUID? = nil, fileName: String) {

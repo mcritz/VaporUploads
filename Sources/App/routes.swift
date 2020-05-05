@@ -1,54 +1,24 @@
 import Fluent
 import Vapor
 
-enum FileError: Error {
-    case couldNotSave
-}
-
-fileprivate func saveFile(name: String, data: Data) throws {
-    let path = FileManager.default
-        .currentDirectoryPath.appending("/\(name)")
-    if FileManager.default.createFile(atPath: path,
-                                      contents: data,
-                                      attributes: nil) {
-        debugPrint("saved file\n\t \(path)")
-    } else {
-        throw FileError.couldNotSave
-    }
-}
-
-extension HTTPHeaders {
-    static let fileName = Name("File-Name")
-}
-
 func routes(_ app: Application) throws {
+    // MARK: /collect
+    let collectFileController = CollectFileController()
+    app.get("collect", use: collectFileController.index)
     
-    let logger = Logger(label: "routes")
+    /// Using `body: .collect` we can load the request into memory.
+    /// This is easier than streaming at the expense of using much more system memory.
+    app.on(.POST, "collect",
+           body: .collect(maxSize: 10_000_000),
+           use: collectFileController.upload)
     
-    // MARK: /images
-    let imageController = ImageController()
-    app.get("images", use: imageController.index)
-    
-    /// Upload a file of up to 10MB
-    app.on(.POST, "images", body: .collect(maxSize: 10_000_000)) { req -> EventLoopFuture<Image> in
-        let image = try req.content.decode(Image.self)
-        return image.save(on: req.db).map {
-            let imageName = image.id?.uuidString ?? "unknown image"
-            do {
-                try saveFile(name: imageName, data: image.data)
-            } catch {
-                logger.critical("failed to save file for image \(imageName)")
-            }
-            return image
-        }
-    }
-    
-    let uploadController = UploadController()
-    app.on(.GET, "files", use: uploadController.index)
-    app.on(.GET, "files", ":fileID", use: uploadController.getOne)
-    app.on(.GET, "files", ":fileID", "original", use: uploadController.downloadOne)
-    app.on(.POST,
-           "files",
-           body: .stream,
-           use: uploadController.upload)
+    // MARK: /stream
+    let uploadController = StreamController()
+    /// using `body: .stream` we can get chunks of data from the client, keeping memory use low.
+    app.on(.POST, "stream",
+        body: .stream,
+        use: uploadController.upload)
+    app.on(.GET, "stream", use: uploadController.index)
+    app.on(.GET, "stream", ":fileID", use: uploadController.getOne)
+    app.on(.GET, "stream", ":fileID", "download", use: uploadController.downloadOne)
 }
