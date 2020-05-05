@@ -19,9 +19,11 @@ struct UploadController {
         return .success(data)
     }
     
-    func downloadOne(req: Request) -> Response {
-        let path = req.application.directory.workingDirectory + "Uploads/" + "bundevils.jpg"
-        return req.fileio.streamFile(at: path)
+    func downloadOne(req: Request) throws -> EventLoopFuture<Response> {
+        try getOne(req: req).map { upload -> Response in
+            let path = req.application.directory.workingDirectory + "Uploads/" + upload.fileName
+            return req.fileio.streamFile(at: path)
+        }
     }
     
     /// Upload huge files (100s of gigs, even)

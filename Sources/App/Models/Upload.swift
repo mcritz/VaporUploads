@@ -10,7 +10,7 @@ final class Upload: Model, Content {
     var id: UUID?
     
     @Field(key: "fileName")
-    private var fileName: String
+    var fileName: String
     
     var fileLastPath: String {
         get {
