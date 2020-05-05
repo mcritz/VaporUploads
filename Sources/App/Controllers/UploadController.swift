@@ -12,16 +12,11 @@ struct UploadController {
             .unwrap(or: Abort(.notFound))
     }
     
-    private func data(of buffer: ByteBuffer, length: Int = 512) -> Result<Data, FileError> {
-        guard let data = buffer.getData(at: 0, length: length) else {
-            return .failure(.couldNotSave)
+    func downloadOne(req: Request) throws -> EventLoopFuture<Response> {
+        try getOne(req: req).map { upload -> Response in
+            let path = req.application.directory.workingDirectory + "Uploads/" + upload.fileName
+            return req.fileio.streamFile(at: path)
         }
-        return .success(data)
-    }
-    
-    func downloadOne(req: Request) -> Response {
-        let path = req.application.directory.workingDirectory + "Uploads/" + "bundevils.jpg"
-        return req.fileio.streamFile(at: path)
     }
     
     /// Upload huge files (100s of gigs, even)
@@ -37,7 +32,7 @@ struct UploadController {
     func upload(req: Request) throws -> EventLoopFuture<HTTPStatus> {
         let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
         
-        // Create a file on disks
+        // Create a file on disk
         let fileName = filename(with: req.headers)
         let filePath = req.application.directory.workingDirectory + "Uploads/" + fileName
         guard FileManager.default.createFile(atPath: filePath,
@@ -54,7 +49,7 @@ struct UploadController {
         
         // Launch the stream…
         return fileHandle.map { fHand in
-            // Vapor will now feed us bytes
+            // Vapor request will now feed us bytes
             req.body.drain { someResult -> EventLoopFuture<Void> in
                 let drainPromise = req.eventLoop.makePromise(of: Void.self)
                 
@@ -84,9 +79,12 @@ struct UploadController {
                     statusPromise.succeed(.internalServerError)
                     
                 case .end:
-                    statusPromise.succeed(.ok)
                     drainPromise.succeed(())
-                    _ = Upload(fileName: fileName).save(on: req.db)
+                    _ = Upload(fileName: fileName)
+                        .save(on: req.db)
+                        .map { _ in
+                        statusPromise.succeed(.ok)
+                    }
                 }
                 return drainPromise.futureResult
             }
