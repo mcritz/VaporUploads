@@ -12,7 +12,17 @@ struct UploadController {
             .unwrap(or: Abort(.notFound))
     }
     
+    private func data(of buffer: ByteBuffer, length: Int = 512) -> Result<Data, FileError> {
+        guard let data = buffer.getData(at: 0, length: length) else {
+            return .failure(.couldNotSave)
+        }
+        return .success(data)
+    }
     
+    func downloadOne(req: Request) -> Response {
+        let path = req.application.directory.workingDirectory + "Uploads/" + "bundevils.jpg"
+        return req.fileio.streamFile(at: path)
+    }
     
     /// Upload huge files (100s of gigs, even)
     /// Problem 1: If we don’t handle the body as a stream, we’ll end up loading the enire file into memory.
