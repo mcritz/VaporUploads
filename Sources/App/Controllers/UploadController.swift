@@ -119,3 +119,23 @@ struct UploadController {
         return "upload-\(UUID().uuidString).\(fileExt)"
     }
 }
+
+extension UploadController {
+    static public func configureUploadDirectory(named directoryName: String = "Uploads/", for app: Application) -> EventLoopFuture<String> {
+        let createdDirectory = app.eventLoopGroup.next().makePromise(of: String.self)
+        var uploadDirectoryName = app.directory.workingDirectory
+        if directoryName.last != "/" {
+            uploadDirectoryName += "/"
+        }
+        uploadDirectoryName += directoryName
+        do {
+            try FileManager.default.createDirectory(atPath: uploadDirectoryName,
+                                                    withIntermediateDirectories: true,
+                                                    attributes: nil)
+            createdDirectory.succeed(uploadDirectoryName)
+        } catch {
+            createdDirectory.fail(FileError.couldNotSave)
+        }
+        return createdDirectory.futureResult
+    }
+}
