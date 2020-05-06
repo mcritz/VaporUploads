@@ -1,30 +1,7 @@
 import Fluent
 import Vapor
 
-enum FileError: Error {
-    case couldNotSave
-}
-
-fileprivate func saveFile(name: String, data: Data) throws {
-    let path = FileManager.default
-        .currentDirectoryPath.appending("/\(name)")
-    if FileManager.default.createFile(atPath: path,
-                                      contents: data,
-                                      attributes: nil) {
-        debugPrint("saved file\n\t \(path)")
-    } else {
-        throw FileError.couldNotSave
-    }
-}
-
-extension HTTPHeaders {
-    static let fileName = Name("File-Name")
-}
-
 func routes(_ app: Application) throws {
-    
-    let logger = Logger(label: "routes")
-    
     // MARK: /images
     let imageController = ImageController()
     app.get("images", use: imageController.index)

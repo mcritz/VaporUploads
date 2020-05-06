@@ -2,6 +2,7 @@ import Fluent
 import Vapor
 
 struct UploadController {
+    let logger = Logger(label: "UploadController")
     
     func index(req: Request) throws -> EventLoopFuture<[Upload]> {
         Upload.query(on: req.db).all()
@@ -33,7 +34,7 @@ struct UploadController {
             --data-binary '@/Users/USERNAME/path/to/GiganticMultiGigabyteFile.mp4'
      */
     func upload(req: Request) throws -> EventLoopFuture<HTTPStatus> {
-        let loggger = Logger(label: "UploadController.upload")
+        let logger = Logger(label: "UploadController.upload")
         let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
         
         // Create a file on disk based on our `Upload` model.
@@ -98,6 +99,11 @@ struct UploadController {
 }
 
 // Helpers for naming files
+
+extension HTTPHeaders {
+    static let fileName = Name("File-Name")
+}
+
 extension UploadController {
     private func fileExtension(for headers: HTTPHeaders) -> String {
         // Parse the header’s Content-Type to determine the file extension
