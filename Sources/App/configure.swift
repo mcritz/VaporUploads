@@ -14,7 +14,7 @@ public func configure(_ app: Application) throws {
     
     try app.autoMigrate().wait()
     
-    let configuredDir = UploadController.configureUploadDirectory(for: app)
+    let configuredDir = configureUploadDirectory(for: app)
     configuredDir.whenFailure { err in
         logger.error("Could not create uploads directory \(err.localizedDescription)")
     }

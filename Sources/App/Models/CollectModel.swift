@@ -8,10 +8,10 @@
 import Fluent
 import Vapor
 
-final class Image: Model, Content {
+final class CollectModel: Model, Content {
     init() { }
     
-    static let schema = "images"
+    static let schema = "collect"
     
     @ID(key: .id)
     var id: UUID?

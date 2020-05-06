@@ -1,10 +1,10 @@
 import Fluent
 import Vapor
 
-final class Upload: Model, Content {
+final class StreamModel: Model, Content {
     init() { }
     
-    static let schema = "uploads"
+    static let schema = "stream"
     
     @ID(key: .id)
     var id: UUID?

@@ -2,23 +2,23 @@ import Fluent
 import Vapor
 
 func routes(_ app: Application) throws {
-    // MARK: /images
-    let imageController = ImageController()
-    app.get("images", use: imageController.index)
+    // MARK: /collect
+    let collectFileController = CollectFileController()
+    app.get("collect", use: collectFileController.index)
     
     /// Using `body: .collect` we can load the request into memory.
     /// This is easier than streaming at the expense of using much more system memory.
-    app.on(.POST, "images",
+    app.on(.POST, "collect",
            body: .collect(maxSize: 10_000_000),
-           use: imageController.upload)
+           use: collectFileController.upload)
     
-    // MARK: /files
-    let uploadController = UploadController()
+    // MARK: /stream
+    let uploadController = StreamController()
     /// using `body: .stream` we can get chunks of data from the client, keeping memory use low.
-    app.on(.POST, "files",
+    app.on(.POST, "stream",
         body: .stream,
         use: uploadController.upload)
-    app.on(.GET, "files", use: uploadController.index)
-    app.on(.GET, "files", ":fileID", use: uploadController.getOne)
-    app.on(.GET, "files", ":fileID", "download", use: uploadController.downloadOne)
+    app.on(.GET, "stream", use: uploadController.index)
+    app.on(.GET, "stream", ":fileID", use: uploadController.getOne)
+    app.on(.GET, "stream", ":fileID", "download", use: uploadController.downloadOne)
 }

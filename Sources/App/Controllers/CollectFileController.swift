@@ -8,15 +8,15 @@
 import Fluent
 import Vapor
 
-struct ImageController {
+struct CollectFileController {
     let logger = Logger(label: "imagecontroller")
     
-    func index(req: Request) throws -> EventLoopFuture<[Image]> {
-        return Image.query(on: req.db).all()
+    func index(req: Request) throws -> EventLoopFuture<[CollectModel]> {
+        return CollectModel.query(on: req.db).all()
     }
     
     func upload(req: Request) throws -> EventLoopFuture<HTTPStatus> {
-        let image = try req.content.decode(Image.self)
+        let image = try req.content.decode(CollectModel.self)
         let saved = image.save(on: req.db)
         let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
 
@@ -42,7 +42,7 @@ struct ImageController {
     }
 }
 
-extension ImageController {
+extension CollectFileController {
     fileprivate func saveFile(name: String, data: Data) throws {
         let path = FileManager.default
             .currentDirectoryPath.appending("/\(name)")
