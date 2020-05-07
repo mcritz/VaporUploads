@@ -1,14 +1,14 @@
 import Fluent
 
-struct CreateUpload: Migration {
+struct CreateCollect: Migration {
     func prepare(on database: Database) -> EventLoopFuture<Void> {
-        return database.schema(StreamModel.schema)
+        return database.schema(CollectModel.schema)
             .id()
-            .field("fileName", .string, .required)
+            .field("data", .data, .required)
             .create()
     }
     
     func revert(on database: Database) -> EventLoopFuture<Void> {
-        return database.schema(StreamModel.schema).delete()
+        return database.schema(CollectModel.schema).delete()
     }
 }

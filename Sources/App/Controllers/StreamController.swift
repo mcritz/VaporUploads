@@ -23,7 +23,7 @@ struct StreamController {
     
     // MARK: The interesting bit
     /// Upload huge files (100s of gigs, even)
-    /// - Problem 1: If we don’t handle the body as a stream, we’ll end up loading the enire file into memory.
+    /// - Problem 1: If we don’t handle the body as a stream, we’ll end up loading the entire file into memory on request.
     /// - Problem 2: Needs to scale for hunderds or thousands of concurrent transfers. So, proper memory management is crucial.
     /// - Problem 3: When *streaming* a file over HTTP (as opposed to encoding with multipart form) we need a way to know what the user’s desired filename is. So we handle a custom Header.
     /// - Problem 4: Custom headers are sometimes filtered out of network requests, so we need a fallback naming for files.
