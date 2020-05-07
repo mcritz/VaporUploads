@@ -74,13 +74,14 @@ struct StreamController {
                                 drainPromise.fail(err)
                             }
                     }
-                case .error(let err):
+                case .error(let errz):
                     do {
+                        drainPromise.fail(errz)
                         // Handle errors by closing and removing our file
                         try? fHand.close()
                         try FileManager.default.removeItem(atPath: upload.filePath(for: req.application))
                     } catch {
-                        debugPrint("catastrophic failure on \(err)", error)
+                        debugPrint("catastrophic failure on \(errz)", error)
                     }
                     // Inform the client
                     statusPromise.succeed(.internalServerError)
