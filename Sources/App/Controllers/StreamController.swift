@@ -31,7 +31,7 @@ struct StreamController {
      * Example:
         curl --location --request POST 'localhost:8080/fileuploadpath' \
             --header 'Content-Type: video/mp4' \
-            --header 'File-Name: bunnies.jpg' \
+            --header 'File-Name: bunnies-eating-strawberries.mp4' \
             --data-binary '@/Users/USERNAME/path/to/GiganticMultiGigabyteFile.mp4'
      */
     func upload(req: Request) throws -> EventLoopFuture<HTTPStatus> {
