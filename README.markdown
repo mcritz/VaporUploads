@@ -30,8 +30,6 @@ These aren’t extremely difficult concepts, but if its new domain expertise for
 
 The benefit is that the inbound bytes are handled and released from memory, keeping memory usage extremely low: KB instead of MB/GB. You can support many concurrent connections. You can stream very large files.
 
-The downside is that you need to 
-
 ## WebSocket Streaming
 
 Not yet in this repository, but worth noting for its novelty and performance potential is that you can stream binary data over WebSockets. The strategy is fairly similar to HTTP Streaming because you’ll read inbound bytes (`websocket.onBinary()`) and handle them with `Promise` and `Future` types, but the implementation relies on the WebSocket API. 
