@@ -26,9 +26,9 @@ This is a bit trickier. You’ll need to understand:
 - Futures
 - NIO’s file handling types: `NonBlockingFileIO` and `NIOFileHandle`
 
-These aren’t extremely difficult concepts, but if its new domain expertise for you then you’ll have the benefit of learning something new.
+These aren’t extremely difficult concepts, but if its new domain expertise for you then you’ll have the personal benefit of learning something new.
 
-The benefit is that the inbound bytes are handled and released from memory, keeping memory usage extremely low: KB instead of MB/GB. You can support many concurrent connections. You can stream very large files.
+The technical benefit is that the inbound bytes are handled and released from memory, keeping memory usage extremely low: KB instead of MB/GB. You can support many concurrent connections. You can stream very large files.
 
 ## WebSocket Streaming
 
