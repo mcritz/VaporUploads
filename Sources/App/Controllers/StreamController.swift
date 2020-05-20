@@ -87,6 +87,11 @@ struct StreamController {
                     statusPromise.succeed(.internalServerError)
                     
                 case .end:
+//                    do {
+//                        try fHand.close()
+//                    } catch {
+//                        debugPrint("failed to close fHand", error)
+//                    }
                     drainPromise.succeed(())
                     _ = upload
                         .save(on: req.db)

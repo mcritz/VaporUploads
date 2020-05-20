@@ -21,4 +21,8 @@ func routes(_ app: Application) throws {
     app.on(.GET, "stream", use: uploadController.index)
     app.on(.GET, "stream", ":fileID", use: uploadController.getOne)
     app.on(.GET, "stream", ":fileID", "download", use: uploadController.downloadOne)
+    
+    // MARK: /websocket
+    let webSocketController = WebSocketController()
+    app.webSocket("websocket", onUpgrade: webSocketController.upload)
 }
