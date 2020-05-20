@@ -36,7 +36,7 @@ services:
       - 80:8080
       - 443:443
   db:
-    image:postgres
+    image: postgres
   app:
     image: uploads:latest
     build:
