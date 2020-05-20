@@ -27,8 +27,16 @@ x-shared_environment: &shared_environment
   DATABASE_PASSWORD: vapor_password
 
 services:
+  nginx:
+    image: nginx:latest
+    container_name: production_nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:8080
+      - 443:443
   app:
-    image: SwiftBlog:latest
+    image: uploads:latest
     build:
       context: .
     environment:
@@ -39,7 +47,7 @@ services:
       - '8080:80'
     command: ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "80"]
   migrate:
-    image: SwiftBlog:latest
+    image: uploads:latest
     build:
       context: .
     environment:
@@ -50,7 +58,7 @@ services:
     deploy:
       replicas: 0
   revert:
-    image: SwiftBlog:latest
+    image: uploads:latest
     build:
       context: .
     environment:
