@@ -49,7 +49,7 @@ struct StreamController {
         }
         
         // Configure SwiftNIO to create a file stream.
-        let nbFileIO = NonBlockingFileIO(threadPool: req.application.threadPool) // Should move out of this func, but left it here for ease of understanding.
+        let nbFileIO = req.application.fileio
         let fileHandle = nbFileIO.openFile(path: upload.filePath(for: req.application),
                                            mode: .write,
                                            eventLoop: req.eventLoop)
