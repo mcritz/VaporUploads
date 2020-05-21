@@ -18,6 +18,7 @@ version: '3.7'
 
 volumes:
   db_data:
+  web_data:
 
 x-shared_environment: &shared_environment
   LOG_LEVEL: ${LOG_LEVEL:-debug}
@@ -29,16 +30,20 @@ x-shared_environment: &shared_environment
 services:
   db:
     image: postgres
+    volumes:
+      - db_data:/db
   app:
     image: uploads:latest
     build:
       context: .
     environment:
       <<: *shared_environment
+    volumes:
+      - web_data:/run
     depends_on:
       - db
     ports:
-      - '8080:80'
+      - '80:80'
     command: ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "80"]
   migrate:
     image: uploads:latest
