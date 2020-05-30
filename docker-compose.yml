@@ -28,6 +28,16 @@ x-shared_environment: &shared_environment
   DATABASE_PASSWORD: vapor_password
 
 services:
+  nginx:
+    image: nginx
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
   db:
     image: postgres
     volumes:
@@ -43,8 +53,10 @@ services:
     depends_on:
       - db
     ports:
-      - '80:80'
-    command: ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "80"]
+      - "8080:8080"
+    expose:
+      - 8080
+    command: ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
   migrate:
     image: uploads:latest
     build:
