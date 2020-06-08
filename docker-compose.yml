@@ -32,6 +32,7 @@ services:
   nginx:
     image: nginx
     container_name: nginx_proxy
+    env_file: variables.env
     ports:
       - "80:80"
       - "443:443"
@@ -40,6 +41,9 @@ services:
       - app
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
   certbot:
     image: certbot/certbot
     volumes:
@@ -54,6 +58,7 @@ services:
     image: uploads:latest
     build:
       context: .
+    env_file: variables.env
     environment:
       <<: *shared_environment
     volumes:

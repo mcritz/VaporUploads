@@ -8,3 +8,4 @@ db.sqlite
 .swiftpm
 Package.resolved
 *.pem
+data/
