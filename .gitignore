@@ -9,3 +9,4 @@ db.sqlite
 Package.resolved
 *.pem
 data/
+*.env
