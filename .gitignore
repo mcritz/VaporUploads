@@ -10,3 +10,4 @@ Package.resolved
 *.pem
 data/
 *.env
+nginx.conf
