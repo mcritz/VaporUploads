@@ -88,6 +88,7 @@ struct StreamController {
                     
                 case .end:
                     drainPromise.succeed(())
+                    try? fHand.close()
                     _ = upload
                         .save(on: req.db)
                         .map { _ in
