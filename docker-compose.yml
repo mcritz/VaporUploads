@@ -32,7 +32,7 @@ services:
   nginx:
     image: nginx
     container_name: nginx_proxy
-    env_file: variables.env
+    env_file: ./variables.env
     ports:
       - "80:80"
       - "443:443"
@@ -58,7 +58,7 @@ services:
     image: uploads:latest
     build:
       context: .
-    env_file: variables.env
+    env_file: ./variables.env
     environment:
       <<: *shared_environment
     volumes:
