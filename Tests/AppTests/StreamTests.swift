@@ -8,7 +8,7 @@
 @testable import App
 import XCTVapor
 
-final class ImageTests: XCTestCase {
+final class StreamTests: XCTestCase {
     var app: Application!
     
     override func setUp() {
@@ -19,9 +19,9 @@ final class ImageTests: XCTestCase {
         app.shutdown()
     }
     
-    func testImages() throws {
-        try app.test(.GET, "images") { res in
+    func testStreaming() throws {
+        try app.test(.GET, "stream", afterResponse:  { res in
             XCTAssertEqual(res.status, .ok)
-        }
+        })
     }
 }

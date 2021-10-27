@@ -97,6 +97,7 @@ struct StreamController {
                 }
                 return drainPromise.futureResult
             }
-        }.transform(to: statusPromise.futureResult)
+        }
+        .transform(to: statusPromise.futureResult)
     }
 }

@@ -1,15 +1,15 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.5
 import PackageDescription
 
 let package = Package(
     name: "VaporUploads",
     platforms: [
-       .macOS(.v10_15)
+       .macOS(.v12)
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/vapor.git", from: "4.0.0-rc"),
-        .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0-rc"),
-        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.0.0-rc")
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.50.0"),
+        .package(url: "https://github.com/vapor/fluent.git", from: "4.4.0"),
+        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.1.0")
     ],
     targets: [
         .target(name: "App", dependencies: [
@@ -17,7 +17,7 @@ let package = Package(
             .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
             .product(name: "Vapor", package: "vapor")
         ]),
-        .target(name: "Run", dependencies: ["App"]),
+        .executableTarget(name: "Run", dependencies: ["App"]),
         .testTarget(name: "AppTests", dependencies: [
             .target(name: "App"),
             .product(name: "XCTVapor", package: "vapor"),
