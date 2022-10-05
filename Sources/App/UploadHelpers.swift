@@ -54,7 +54,7 @@ func configureUploadDirectory(named directoryName: String = "Uploads/", for app:
                                                 attributes: nil)
         createdDirectory.succeed(uploadDirectoryName)
     } catch {
-        createdDirectory.fail(FileError.couldNotSave)
+        createdDirectory.fail(FileError.couldNotSave(reason: error.localizedDescription))
     }
     return createdDirectory.futureResult
 }
