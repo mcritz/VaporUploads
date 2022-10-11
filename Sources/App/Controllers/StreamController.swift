@@ -53,19 +53,19 @@ struct StreamController {
             throw Abort(.internalServerError)
         }
         
-do {
-    let nioFileHandle = try NIOFileHandle(path: filePath, mode: .write)
-    var offset: Int64 = 0
-    
-    for try await bytes in req.asyncByteBufferStream {
-        try await req.application.fileio.write(fileHandle: nioFileHandle,
-                                               toOffset: offset,
-                                               buffer: bytes,
-                                               eventLoop: req.eventLoop).get()
-        offset += Int64(bytes.readableBytes)
-    }
-    try nioFileHandle.close()
-} catch {
+        do {
+            let nioFileHandle = try NIOFileHandle(path: filePath, mode: .write)
+            var offset: Int64 = 0
+            let channel = req.asyncThrowingChannel
+            for try await byteBuffer in channel {
+                try await req.application.fileio.write(fileHandle: nioFileHandle,
+                                                       toOffset: offset,
+                                                       buffer: byteBuffer,
+                                                       eventLoop: req.eventLoop).get()
+                offset += Int64(byteBuffer.readableBytes)
+            }
+            try nioFileHandle.close()
+        } catch {
             try FileManager.default.removeItem(atPath: filePath)
             logger.error("File save failed for \(filePath)")
             throw Abort(.internalServerError)

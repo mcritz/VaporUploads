@@ -5,24 +5,29 @@
 //  Created by Michael Critz on 10/9/22.
 //
 
+import AsyncAlgorithms
 import Vapor
 
 extension Request {
     /// Stream `ByteBuffer`s from a `Request.Body`
-    public var asyncByteBufferStream: AsyncThrowingStream<ByteBuffer, Error> {
-        AsyncThrowingStream { continuation in
-            self.body.drain { streamResult in
+    public var asyncThrowingChannel: AsyncThrowingChannel<ByteBuffer, any Error> {
+        let channel = AsyncThrowingChannel<ByteBuffer, any Error>(ByteBuffer.self)
+        
+        self.body.drain { streamResult in
+            Task {
                 switch streamResult {
                 case .buffer(let byteBuffer):
-                    continuation.yield(byteBuffer)
+                    await channel.send(byteBuffer)
                 case .error(let error):
-                    continuation.finish(throwing: error)
+                    await channel.fail(error)
                 case .end:
-                    continuation.finish()
+                    channel.finish()
                 }
-                return self.eventLoop.makeSucceededVoidFuture()
             }
+            return self.eventLoop.makeSucceededVoidFuture()
         }
+        
+        return channel
     }
 }
 
