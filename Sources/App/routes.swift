@@ -15,10 +15,9 @@ func routes(_ app: Application) throws {
     // MARK: /stream
     let uploadController = StreamController()
     /// using `body: .stream` we can get chunks of data from the client, keeping memory use low.
-//    app.on(.POST, "stream",
-//        body: .stream,
-//        use: uploadController.upload)
-    app.on(.POST, "stream", body: .stream, use: uploadController.upload)
+    app.on(.POST, "stream",
+           body: .stream,
+           use: uploadController.upload)
     app.on(.GET, "stream", use: uploadController.index)
     app.on(.GET, "stream", ":fileID", use: uploadController.getOne)
     app.on(.GET, "stream", ":fileID", "download", use: uploadController.downloadOne)

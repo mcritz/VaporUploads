@@ -1,5 +1,6 @@
 import Fluent
 import Vapor
+import NIOCore
 
 struct StreamController {
     let logger = Logger(label: "StreamController")
@@ -38,15 +39,13 @@ struct StreamController {
     func upload(req: Request) async throws -> HTTPStatus {
         let logger = Logger(label: "StreamController.upload")
         
-        guard let buffy = req.body.data else {
-            logger.error("No buffer on req \(req.url)/")
-            throw Abort(.badRequest)
-        }
-        
         // Create a file on disk based on our `Upload` model.
         let fileName = filename(with: req.headers)
         let upload = StreamModel(fileName: fileName)
         let filePath = upload.filePath(for: req.application)
+        
+        // Remove any file with the same name
+        try? FileManager.default.removeItem(atPath: filePath)
         guard FileManager.default.createFile(atPath: filePath,
                                        contents: nil,
                                        attributes: nil) else {
@@ -54,10 +53,19 @@ struct StreamController {
             throw Abort(.internalServerError)
         }
         
-        // Configure SwiftNIO to create a file stream.
-        do {
-            try await req.fileio.writeFile(buffy, at: filePath)
-        } catch {
+do {
+    let nioFileHandle = try NIOFileHandle(path: filePath, mode: .write)
+    var offset: Int64 = 0
+    
+    for try await bytes in req.asyncByteBufferStream {
+        try await req.application.fileio.write(fileHandle: nioFileHandle,
+                                               toOffset: offset,
+                                               buffer: bytes,
+                                               eventLoop: req.eventLoop).get()
+        offset += Int64(bytes.readableBytes)
+    }
+    try nioFileHandle.close()
+} catch {
             try FileManager.default.removeItem(atPath: filePath)
             logger.error("File save failed for \(filePath)")
             throw Abort(.internalServerError)
