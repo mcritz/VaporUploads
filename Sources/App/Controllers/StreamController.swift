@@ -36,9 +36,8 @@ struct StreamController {
             --header 'File-Name: bunnies-eating-strawberries.mp4' \
             --data-binary '@/Users/USERNAME/path/to/GiganticMultiGigabyteFile.mp4'
      */
-    func upload(req: Request) async throws -> HTTPStatus {
+    func upload(req: Request) async throws -> some AsyncResponseEncodable {
         let logger = Logger(label: "StreamController.upload")
-        
         // Create a file on disk based on our `Upload` model.
         let fileName = filename(with: req.headers)
         let upload = StreamModel(fileName: fileName)
@@ -52,25 +51,34 @@ struct StreamController {
             logger.critical("Could not upload \(upload.fileName)")
             throw Abort(.internalServerError)
         }
-        
-        do {
-            let nioFileHandle = try NIOFileHandle(path: filePath, mode: .write)
-            var offset: Int64 = 0
-            let channel = req.asyncThrowingChannel
-            for try await byteBuffer in channel {
-                try await req.application.fileio.write(fileHandle: nioFileHandle,
-                                                       toOffset: offset,
-                                                       buffer: byteBuffer,
-                                                       eventLoop: req.eventLoop).get()
-                offset += Int64(byteBuffer.readableBytes)
+        let nioFileHandle = try NIOFileHandle(path: filePath, mode: .write)
+        defer {
+            do {
+                try nioFileHandle.close()
+            } catch {
+                logger.error("\(error.localizedDescription)")
             }
-            try nioFileHandle.close()
+        }
+        do {
+            var offset: Int64 = 0
+            for try await byteBuffer in req.body {
+                do {
+                    try await req.application.fileio.write(fileHandle: nioFileHandle,
+                                                           toOffset: offset,
+                                                           buffer: byteBuffer,
+                                                           eventLoop: req.eventLoop).get()
+                    offset += Int64(byteBuffer.readableBytes)
+                } catch {
+                    logger.error("\(error.localizedDescription)")
+                }
+            }
+            try await upload.save(on: req.db)
         } catch {
             try FileManager.default.removeItem(atPath: filePath)
             logger.error("File save failed for \(filePath)")
             throw Abort(.internalServerError)
         }
-        logger.info("saved \(filePath)")
-        return HTTPStatus.ok
+        logger.info("saved \(upload)")
+        return "Saved \(upload)"
     }
 }
