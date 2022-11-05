@@ -1,6 +1,6 @@
 # VaporUploads
 
-## Demonstrating File Uploads in Vapor 4
+## Demonstrating File Uploads in Vapor 4 using async / await
 
 ## Basics
 
@@ -18,15 +18,9 @@ The obvious downside is that if you’re expecting many requests or large upload
 
 ## HTTP Streaming
 
-You can also upload files on a `POST` and *stream* the incoming bytes for handling as seen in [routes.swift:18](https://github.com/mcritz/VaporUploads/blob/68d53018f56f0355995a9de20a610a38a57fdec2/Sources/App/routes.swift#L18) and [StreamController.swift:24](https://github.com/mcritz/VaporUploads/blob/68d53018f56f0355995a9de20a610a38a57fdec2/Sources/App/Controllers/StreamController.swift#L24)
+You can also upload files on a `POST` and *stream* the incoming bytes for handling as seen in [routes.swift:18](https://github.com/mcritz/VaporUploads/blob/68d53018f56f0355995a9de20a610a38a57fdec2/Sources/App/routes.swift#L18) and [StreamController.swift:39](https://github.com/mcritz/VaporUploads/blob/68d53018f56f0355995a9de20a610a38a57fdec2/Sources/App/Controllers/StreamController.swift#L39)
 
-This is a bit trickier. You’ll need to understand:
-
-- Promises
-- Futures
-- NIO’s file handling types: `NonBlockingFileIO` and `NIOFileHandle`
-
-These aren’t extremely difficult concepts, but if its new domain expertise for you then you’ll have the personal benefit of learning something new.
+This uses Vapor’s `Request.Body` as an `AsyncSequence`.
 
 The technical benefit is that the inbound bytes are handled and released from memory, keeping memory usage extremely low: KB instead of MB/GB. You can support many concurrent connections. You can stream very large files.
 

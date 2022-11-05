@@ -7,7 +7,7 @@ let package = Package(
        .macOS(.v12)
     ],
     dependencies: [
-        .package(url: "https://github.com/mcritz/vapor", branch: "main"),
+        .package(url: "https://github.com/vapor/vapor", from: "4.67.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0-rc"),
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.0.0-rc"),
     ],
