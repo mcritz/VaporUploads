@@ -1,24 +1,26 @@
 import Fluent
 import Vapor
+import NIOCore
 
 struct StreamController {
     let logger = Logger(label: "StreamController")
     
-    func index(req: Request) throws -> EventLoopFuture<[StreamModel]> {
-        StreamModel.query(on: req.db).all()
+    func index(req: Request) async throws -> [StreamModel] {
+        try await StreamModel.query(on: req.db).all()
     }
     
-    func getOne(req: Request) throws -> EventLoopFuture<StreamModel> {
-        StreamModel.find(req.parameters.get("fileID"), on: req.db)
-            .unwrap(or: Abort(.notFound))
+    func getOne(req: Request) async throws -> StreamModel {
+        guard let model = try await StreamModel.find(req.parameters.get("fileID"), on: req.db) else {
+            throw Abort(.badRequest)
+        }
+        return model
     }
     
     /// Streaming download comes with Vapor “out of the box”.
     /// Call `req.fileio.streamFile` with a path and Vapor will generate a suitable Response.
-    func downloadOne(req: Request) throws -> EventLoopFuture<Response> {
-        try getOne(req: req).map { upload -> Response in
-            req.fileio.streamFile(at: upload.filePath(for: req.application))
-        }
+    func downloadOne(req: Request) async throws -> Response {
+        let upload = try await getOne(req: req)
+        return req.fileio.streamFile(at: upload.filePath(for: req.application))
     }
     
     // MARK: The interesting bit
@@ -34,69 +36,49 @@ struct StreamController {
             --header 'File-Name: bunnies-eating-strawberries.mp4' \
             --data-binary '@/Users/USERNAME/path/to/GiganticMultiGigabyteFile.mp4'
      */
-    func upload(req: Request) throws -> EventLoopFuture<HTTPStatus> {
+    func upload(req: Request) async throws -> some AsyncResponseEncodable {
         let logger = Logger(label: "StreamController.upload")
-        let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
-        
         // Create a file on disk based on our `Upload` model.
         let fileName = filename(with: req.headers)
         let upload = StreamModel(fileName: fileName)
-        guard FileManager.default.createFile(atPath: upload.filePath(for: req.application),
+        let filePath = upload.filePath(for: req.application)
+        
+        // Remove any file with the same name
+        try? FileManager.default.removeItem(atPath: filePath)
+        guard FileManager.default.createFile(atPath: filePath,
                                        contents: nil,
                                        attributes: nil) else {
             logger.critical("Could not upload \(upload.fileName)")
             throw Abort(.internalServerError)
         }
-        
-        // Configure SwiftNIO to create a file stream.
-        let nbFileIO = req.application.fileio
-        let fileHandle = nbFileIO.openFile(path: upload.filePath(for: req.application),
-                                           mode: .write,
-                                           eventLoop: req.eventLoop)
-        
-        // Launch the stream…
-        return fileHandle.map { fHand in
-            // Vapor request will now feed us bytes
-            req.body.drain { someResult -> EventLoopFuture<Void> in
-                let drainPromise = req.eventLoop.makePromise(of: Void.self)
-                
-                switch someResult {
-                case .buffer(let buffy):
-                    // We have bytes. So, write them to disk, and handle our promise
-                    _ = nbFileIO.write(fileHandle: fHand,
-                                   buffer: buffy,
-                                   eventLoop: req.eventLoop)
-                        .always { outcome in
-                            switch outcome {
-                            case .success(let yep):
-                                drainPromise.succeed(yep)
-                            case .failure(let err):
-                                drainPromise.fail(err)
-                            }
-                    }
-                case .error(let errz):
-                    do {
-                        drainPromise.fail(errz)
-                        // Handle errors by closing and removing our file
-                        try? fHand.close()
-                        try FileManager.default.removeItem(atPath: upload.filePath(for: req.application))
-                    } catch {
-                        debugPrint("catastrophic failure on \(errz)", error)
-                    }
-                    // Inform the client
-                    statusPromise.succeed(.internalServerError)
-                    
-                case .end:
-                    drainPromise.succeed(())
-                    try? fHand.close()
-                    _ = upload
-                        .save(on: req.db)
-                        .map { _ in
-                        statusPromise.succeed(.ok)
-                    }
-                }
-                return drainPromise.futureResult
+        let nioFileHandle = try NIOFileHandle(path: filePath, mode: .write)
+        defer {
+            do {
+                try nioFileHandle.close()
+            } catch {
+                logger.error("\(error.localizedDescription)")
             }
-        }.transform(to: statusPromise.futureResult)
+        }
+        do {
+            var offset: Int64 = 0
+            for try await byteBuffer in req.body {
+                do {
+                    try await req.application.fileio.write(fileHandle: nioFileHandle,
+                                                           toOffset: offset,
+                                                           buffer: byteBuffer,
+                                                           eventLoop: req.eventLoop).get()
+                    offset += Int64(byteBuffer.readableBytes)
+                } catch {
+                    logger.error("\(error.localizedDescription)")
+                }
+            }
+            try await upload.save(on: req.db)
+        } catch {
+            try FileManager.default.removeItem(atPath: filePath)
+            logger.error("File save failed for \(filePath)")
+            throw Abort(.internalServerError)
+        }
+        logger.info("saved \(upload)")
+        return "Saved \(upload)"
     }
 }

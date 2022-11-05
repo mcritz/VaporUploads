@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-final class StreamModel: Model, Content {
+final class StreamModel: Model, Content, CustomStringConvertible {
     init() { }
     
     static let schema = "stream"
@@ -14,6 +14,10 @@ final class StreamModel: Model, Content {
     
     public func filePath(for app: Application) -> String {
         app.directory.workingDirectory + "Uploads/" + fileName
+    }
+    
+    var description: String {
+        return fileName
     }
     
     init(id: UUID? = nil, fileName: String) {

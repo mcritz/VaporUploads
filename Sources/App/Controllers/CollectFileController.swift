@@ -1,44 +1,24 @@
-//
-//  File.swift
-//  
-//
-//  Created by Michael Critz on 4/13/20.
-//
-
 import Fluent
 import Vapor
 
 struct CollectFileController {
     let logger = Logger(label: "imagecontroller")
     
-    func index(req: Request) throws -> EventLoopFuture<[CollectModel]> {
-        return CollectModel.query(on: req.db).all()
+    func index(req: Request) async throws -> [CollectModel] {
+        return try await CollectModel.query(on: req.db).all()
     }
     
-    func upload(req: Request) throws -> EventLoopFuture<HTTPStatus> {
+    func upload(req: Request) async throws -> HTTPStatus {
         let image = try req.content.decode(CollectModel.self)
-        let saved = image.save(on: req.db)
-        let statusPromise = req.eventLoop.makePromise(of: HTTPStatus.self)
-
-        
-        saved.whenComplete { someResult in
-            switch someResult {
-            case .success:
-                let imageName = image.id?.uuidString ?? "unknown image"
-                do {
-                    try self.saveFile(name: imageName, data: image.data)
-                } catch {
-                    self.logger.critical("failed to save file for image \(imageName)")
-                    statusPromise.succeed(.internalServerError)
-                }
-                statusPromise.succeed(.ok)
-            case .failure(let error):
-                self.logger.critical("failed to save file \(error.localizedDescription)")
-                statusPromise.succeed(.internalServerError)
-            }
-            statusPromise.succeed(.ok)
+        try await image.save(on: req.db)
+        let imageName = image.id?.uuidString ?? "unknown image"
+        do {
+            try self.saveFile(name: imageName, data: image.data)
+            return HTTPStatus.ok
+        } catch {
+            logger.critical("failed to save file \(error.localizedDescription)")
+            return HTTPStatus.internalServerError
         }
-        return statusPromise.futureResult
     }
 }
 
@@ -49,13 +29,14 @@ extension CollectFileController {
         if FileManager.default.createFile(atPath: path,
                                           contents: data,
                                           attributes: nil) {
-            debugPrint("saved file\n\t \(path)")
+            logger.info("saved file\n\t \(path)")
         } else {
-            throw FileError.couldNotSave
+            logger.critical("failed to save file for image \(name)")
+            throw FileError.couldNotSave(reason: "error writing file \(path)")
         }
     }
 }
 
 enum FileError: Error {
-    case couldNotSave
+    case couldNotSave(reason: String)
 }
