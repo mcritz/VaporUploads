@@ -1,5 +1,5 @@
 import Fluent
-import FluentSQLiteDriver
+import FluentPostgresDriver
 import Vapor
 
 // configures your application
@@ -8,12 +8,20 @@ public func configure(_ app: Application) throws {
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
-    if let port = Environment.get("PORT").flatMap(Int.init) {
-        app.http.server.configuration.port = port
-    }
-
-
-    app.databases.use(.sqlite(.file("db.sqlite")), as: .sqlite)
+    let port = Environment.get("PORT").flatMap(Int.init)
+    let dbHost = Environment.get("DATABASE_HOST") ?? "localhost"
+    let dbDatabase = Environment.get("DATABASE_NAME") ?? "db"
+    let dbUser = Environment.get("DATABASE_USERNAME") ?? ""
+    
+    app.http.server.configuration.port = port ?? 8080
+     
+    let dbPassword = Environment.get("DATABASE_PASSWORD") ?? ""
+    
+    app.databases.use(.postgres(hostname: dbHost,
+                                username: dbUser,
+                                password: dbPassword,
+                                database: dbDatabase),
+                      as: .psql)
 
     app.migrations.add(CreateCollect())
     app.migrations.add(CreateStream())

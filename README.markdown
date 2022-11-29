@@ -30,3 +30,6 @@ Not yet in this repository, but worth noting for its novelty and performance pot
 
 So, you need to set up the websocket connection, handle inbound bytes, communicate outcomes to the client, and close the connection when appropriate. If you want, I can provide a proof of concept example. Let me know on twitter: [@mike_critz](https://twitter.com/mike_critz)
 
+## Hosting
+
+
