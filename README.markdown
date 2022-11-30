@@ -30,6 +30,9 @@ Not yet in this repository, but worth noting for its novelty and performance pot
 
 So, you need to set up the websocket connection, handle inbound bytes, communicate outcomes to the client, and close the connection when appropriate. If you want, I can provide a proof of concept example. Let me know on twitter: [@mike_critz](https://twitter.com/mike_critz)
 
-## Hosting
+## Deployment
 
+The included docker-compose.yml file uses Caddy. You'll need to create the caddy_data volume using `docker volume create caddy_data`.
+
+Then build the services with `docker compose up --build -d`.
 
